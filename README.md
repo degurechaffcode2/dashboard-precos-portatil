@@ -116,4 +116,3 @@ MIT — use, modifique e distribua livremente.
 
 - Dados: [SINAPI/CAIXA](https://www.caixa.gov.br/poder-publico/modernizacao-gestao/sinapi/) e [SEINFRA-CE](https://www.seinfra.ce.gov.br/)
 - Motor SQLite: [sql.js](https://github.com/sql-js/sql.js/)
-- Desenvolvido com [Hermes Agent](https://hermes-agent.nousresearch.com/)
