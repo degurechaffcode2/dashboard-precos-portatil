@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Preços — SINAPI + SEINFRA-CE (Portátil)</title>
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e14;
+  --bg-card: #1a1f2b;
+  --bg-card-hover: #212836;
+  --bg-input: #141821;
+  --bg-sidebar: #0f131c;
+  --border: #2a3040;
+  --text: #c8ccd4;
+  --text-dim: #6b7280;
+  --text-bright: #e5e7eb;
+  --accent: #00d4aa;
+  --accent-dim: #00b894;
+  --blue: #4da6ff;
+  --blue-bg: rgba(77, 166, 255, 0.12);
+  --blue-border: rgba(77, 166, 255, 0.30);
+  --orange: #ff9f43;
+  --orange-bg: rgba(255, 159, 67, 0.12);
+  --orange-border: rgba(255, 159, 67, 0.30);
+  --red: #ff6b6b;
+  --yellow: #feca57;
+  --radius: 8px;
+  --radius-sm: 5px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.25);
+  --transition: 0.18s ease;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 320px;
+  min-width: 320px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: margin-left 0.3s ease;
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-header h1 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sidebar-header h1 span { font-size: 12px; color: var(--text-dim); font-weight: 400; }
+
+.sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+/* SEARCH ZONE */
+.search-zone {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  color: var(--text-bright);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.search-input:focus { border-color: var(--accent); }
+.search-input::placeholder { color: var(--text-dim); }
+
+/* SOURCE TOGGLE */
+.source-toggle {
+  display: flex;
+  gap: 0;
+  margin-top: 10px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.source-btn {
+  flex: 1;
+  padding: 7px 6px;
+  border: none;
+  background: var(--bg-input);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--transition);
+  border-right: 1px solid var(--border);
+}
+.source-btn:last-child { border-right: none; }
+.source-btn:hover { color: var(--text); background: var(--bg-card-hover); }
+.source-btn.active { background: var(--accent); color: #000; font-weight: 700; }
+
+/* HIERARCHY TREE */
+.tree-section {
+  padding: 12px 16px 8px;
+}
+.tree-section h2 {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+.tree { list-style: none; }
+
+.tree-node { margin-bottom: 2px; }
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12.5px;
+  transition: background var(--transition);
+  user-select: none;
+}
+.tree-row:hover { background: var(--bg-card-hover); }
+.tree-row.active { background: rgba(0, 212, 170, 0.10); color: var(--accent); }
+
+.tree-toggle {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+.tree-toggle.expanded { transform: rotate(90deg); }
+.tree-toggle.empty { opacity: 0; pointer-events: none; }
+
+.tree-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-code { font-size: 11px; color: var(--text-dim); margin-left: auto; flex-shrink: 0; }
+.tree-children { margin-left: 16px; display: none; }
+.tree-children.open { display: block; }
+.tree-loading { padding: 4px 8px; font-size: 11px; color: var(--text-dim); font-style: italic; }
+
+/* MAIN PANEL */
+.main-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.main-header {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg);
+}
+.main-header .info { font-size: 12px; color: var(--text-dim); }
+.main-header .info strong { color: var(--text); }
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+/* ============================================================
+   RESULTS TABLE
+   ============================================================ */
+.results-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+.results-card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.results-card-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  background: var(--bg-input);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(42, 48, 64, 0.5);
+  vertical-align: middle;
+}
+tbody tr {
+  cursor: pointer;
+  transition: background var(--transition);
+}
+tbody tr:hover { background: var(--bg-card-hover); }
+tbody tr.selected { background: rgba(0, 212, 170, 0.06); }
+tbody tr:last-child td { border-bottom: none; }
+
+.col-codigo { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 12px; font-weight: 600; }
+.col-descricao { max-width: 400px; }
+.col-unid, .col-custo { white-space: nowrap; text-align: right; }
+.col-fonte { white-space: nowrap; text-align: center; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.badge-sinapi { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-border); }
+.badge-seinfra { background: var(--orange-bg); color: var(--orange); border: 1px solid var(--orange-border); }
+
+.copy-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 11px;
+  margin-left: 4px;
+  transition: all var(--transition);
+}
+.copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ============================================================
+   ANALYTICAL BREAKDOWN (ACCORDION)
+   ============================================================ */
+.analitico-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+  border-left: 3px solid var(--accent);
+}
+.analitico-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.analitico-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.analitico-header .parent-code {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-left: 8px;
+}
+
+.analitico-items { padding: 0; }
+
+.analitico-items table thead th { background: rgba(0, 212, 170, 0.05); }
+
+.sem-preco {
+  color: var(--yellow);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.totais-bar {
+  display: flex;
+  gap: 20px;
+  padding: 14px 16px;
+  background: var(--bg-input);
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.totais-bar .total-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.totais-bar .total-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+.totais-bar .total-value {
+  font-family: monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-bright);
+}
+.totais-bar .total-value.warn { color: var(--yellow); }
+.totais-bar .total-value.good { color: var(--accent); }
+.totais-bar .total-value.negative { color: var(--red); }
+
+/* ============================================================
+   EMPTY / LOADING / ERROR STATES
+   ============================================================ */
+.state-msg {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-dim);
+}
+.state-msg .icon { font-size: 36px; margin-bottom: 12px; }
+.state-msg p { font-size: 14px; }
+.state-msg .sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-msg {
+  background: rgba(255, 107, 107, 0.08);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  color: var(--red);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* Full-screen overlay for initial load */
+.init-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  gap: 16px;
+  transition: opacity 0.4s;
+}
+.init-overlay.hidden { opacity: 0; pointer-events: none; }
+.init-overlay h2 { color: var(--accent); font-size: 20px; }
+.init-overlay .sub { color: var(--text-dim); font-size: 13px; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    margin-left: -320px;
+  }
+  .sidebar.open { margin-left: 0; }
+  .mobile-menu-btn { display: block; }
+  .main-content { padding: 12px; }
+  .col-descricao { max-width: 200px; }
+  .totais-bar { flex-direction: column; gap: 8px; }
+}
+
+/* overlay when sidebar is open on mobile */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 5;
+}
+@media (max-width: 768px) {
+  .sidebar-overlay.show { display: block; }
+}
+</style>
+</head>
+<body>
+
+<!-- INITIAL LOADING OVERLAY -->
+<div class="init-overlay" id="initOverlay">
+  <div class="loading-spinner" style="width:40px;height:40px;border-width:3px;"></div>
+  <h2>Carregando Dashboard...</h2>
+  <p class="sub" id="initStatus">Inicializando banco de dados SQLite</p>
+</div>
+
+<!-- MAIN APP (hidden until ready) -->
+<div class="app" id="app" style="display:none;">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>🏗️ Dashboard de Preços <span>Portátil</span></h1>
+  </div>
+  <div class="sidebar-scroll">
+    <!-- Search -->
+    <div class="search-zone">
+      <input type="text" class="search-input" id="searchInput"
+             placeholder="Buscar composição... (ex: PISO, CONCRETO)"
+             autocomplete="off">
+      <div class="source-toggle" id="sourceToggle">
+        <button class="source-btn active" data-source="sinapi">SINAPI</button>
+        <button class="source-btn" data-source="seinfra">SEINFRA</button>
+        <button class="source-btn" data-source="both">AMBOS</button>
+      </div>
+    </div>
+
+    <!-- SINAPI Groups -->
+    <div class="tree-section">
+      <h2>📂 SINAPI — Grupos</h2>
+      <ul class="tree" id="sinapiTreeRoot"></ul>
+    </div>
+
+    <!-- SEINFRA Hierarchy -->
+    <div class="tree-section">
+      <h2>📂 SEINFRA — Plano de Serviços</h2>
+      <ul class="tree" id="seinfraTreeRoot"></ul>
+    </div>
+  </div>
+</aside>
+
+<!-- Overlay for mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- MAIN PANEL -->
+<main class="main-panel">
+  <div class="main-header">
+    <button class="mobile-menu-btn" id="mobileMenuBtn" title="Menu">☰</button>
+    <div class="info" id="headerInfo"><strong>Pronto</strong> — Digite um termo para buscar</div>
+  </div>
+  <div class="main-content" id="mainContent">
+    <div class="state-msg">
+      <div class="icon">🔍</div>
+      <p>Busque por composições de preço</p>
+      <p class="sub">SINAPI (CAIXA, Abr/2026 — CE) e SEINFRA-CE (Ver. 028)</p>
+      <p class="sub" style="margin-top:8px;">💾 Modo portátil — funciona offline após primeiro carregamento</p>
+    </div>
+  </div>
+</main>
+
+</div>
+
+<!-- sql.js from CDN (only external dependency) -->
+<script src="https://unpkg.com/sql.js@1.12.0/dist/sql-wasm.js"></script>
+
+<script>
+// ============================================================
+// GLOBALS & STATE
+// ============================================================
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+let DB = null;               // SQL.js database instance
+let currentSource = 'sinapi';
+let searchTimeout = null;
+let currentResults = [];
+let activeComposicaoId = null; // "sinapi|123" or "seinfra|C123"
+
+// Tree state caches
+let seinfraTreeCache = {};    // item -> { expanded, children: [...], loaded }
+let sinapiGroupCache = {};    // grupo -> { expanded, items: [...], loaded }
+
+// DOM refs
+const initOverlay = $('#initOverlay');
+const initStatus = $('#initStatus');
+const appEl = $('#app');
+const searchInput = $('#searchInput');
+const sourceToggle = $('#sourceToggle');
+const sinapiTreeRoot = $('#sinapiTreeRoot');
+const seinfraTreeRoot = $('#seinfraTreeRoot');
+const mainContent = $('#mainContent');
+const headerInfo = $('#headerInfo');
+const sidebar = $('#sidebar');
+const sidebarOverlay = $('#sidebarOverlay');
+const mobileMenuBtn = $('#mobileMenuBtn');
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+
+async function init() {
+  try {
+    initStatus.textContent = 'Baixando SQLite WebAssembly...';
+
+    // Init sql.js
+    const SQL = await initSqlJs({
+      locateFile: file => `https://unpkg.com/sql.js@1.12.0/dist/${file}`
+    });
+
+    initStatus.textContent = 'Carregando dados.sqlite...';
+
+    // Fetch the SQLite database file
+    let resp;
+    try {
+      resp = await fetch('dados.sqlite');
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    } catch (fetchErr) {
+      const isFileProtocol = window.location.protocol === 'file:';
+      let msg = 'Arquivo dados.sqlite não encontrado!\n\n';
+      if (isFileProtocol) {
+        msg += '🔧 Você abriu o arquivo diretamente (file://).\n' +
+               'Navegadores bloqueiam o carregamento de arquivos locais.\n\n' +
+               'SOLUÇÃO (escolha uma):\n' +
+               '1. Windows: duplo-clique em iniciar.bat\n' +
+               '2. Linux/Mac: ./iniciar.sh\n' +
+               '3. Ou abra no Firefox (funciona direto).';
+      } else {
+        msg += 'Coloque dados.sqlite no mesmo diretório do index.html.\n' +
+               'Execute primeiro: python3 export_to_sqlite.py';
+      }
+      throw new Error(msg);
+    }
+
+    const buffer = await resp.arrayBuffer();
+    initStatus.textContent = 'Montando banco de dados...';
+    DB = new SQL.Database(new Uint8Array(buffer));
+
+    initStatus.textContent = 'Construindo árvores...';
+
+    // Preload tree data
+    buildSinapiTree();
+    buildSeinfraTree();
+
+    // Hide overlay and show app
+    initOverlay.classList.add('hidden');
+    appEl.style.display = 'flex';
+
+    // Focus search
+    setTimeout(() => searchInput.focus(), 100);
+
+  } catch (err) {
+    initOverlay.innerHTML = `
+      <div style="font-size:48px;margin-bottom:12px;">⚠️</div>
+      <h2 style="color:var(--red);">Erro ao inicializar</h2>
+      <p class="sub" style="max-width:500px;text-align:center;white-space:pre-line;">${escapeHtml(err.message)}</p>
+      <p class="sub" style="margin-top:16px;">
+        Certifique-se de que <code>dados.sqlite</code> está no mesmo diretório.
+      </p>
+    `;
+    initOverlay.style.opacity = '1';
+  }
+}
+
+// ============================================================
+// SQL HELPERS
+// ============================================================
+
+function dbQuery(sql, params) {
+  if (!DB) return [];
+  try {
+    const stmt = DB.prepare(sql);
+    if (params) stmt.bind(params);
+    const rows = [];
+    while (stmt.step()) {
+      rows.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return rows;
+  } catch (e) {
+    console.error('SQL error:', sql, e);
+    return [];
+  }
+}
+
+function dbQueryOne(sql, params) {
+  const rows = dbQuery(sql, params);
+  return rows.length > 0 ? rows[0] : null;
+}
+
+// ============================================================
+// SOURCE TOGGLE
+// ============================================================
+sourceToggle.addEventListener('click', (e) => {
+  const btn = e.target.closest('.source-btn');
+  if (!btn) return;
+  sourceToggle.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentSource = btn.dataset.source;
+  if (searchInput.value.trim()) doSearch();
+});
+
+// ============================================================
+// DEBOUNCED SEARCH
+// ============================================================
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(doSearch, 300);
+});
+
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    clearTimeout(searchTimeout);
+    doSearch();
+  }
+});
+
+function doSearch() {
+  if (!DB) return;
+
+  const q = searchInput.value.trim();
+  if (!q) {
+    mainContent.innerHTML = `<div class="state-msg">
+      <div class="icon">🔍</div>
+      <p>Busque por composições de preço</p>
+      <p class="sub">SINAPI (CAIXA, Abr/2026 — CE) e SEINFRA-CE (Ver. 028)</p>
+    </div>`;
+    headerInfo.innerHTML = '<strong>Pronto</strong> — Digite um termo para buscar';
+    currentResults = [];
+    return;
+  }
+
+  mainContent.innerHTML = `<div class="state-msg"><div class="loading-spinner"></div><p>Buscando...</p></div>`;
+  headerInfo.innerHTML = `<strong>Buscando</strong> "${escapeHtml(q)}" em ${currentSource.toUpperCase()}...`;
+
+  const keyword = `%${q}%`;
+  const results = [];
+
+  // SINAPI search
+  if (currentSource === 'sinapi' || currentSource === 'both') {
+    const rows = dbQuery(
+      `SELECT CAST(codigo AS TEXT) AS codigo, descricao, unidade, ROUND(custo,2) AS custo
+       FROM sinapi_composicoes
+       WHERE CAST(codigo AS TEXT) LIKE ? OR descricao LIKE ?
+       ORDER BY descricao LIMIT 200`,
+      [keyword, keyword]
+    );
+    for (const r of rows) {
+      r.source = 'SINAPI';
+      r.custo = r.custo != null ? Number(r.custo) : null;
+      results.push(r);
+    }
+  }
+
+  // SEINFRA search
+  if (currentSource === 'seinfra' || currentSource === 'both') {
+    const rows = dbQuery(
+      `SELECT codigo, descricao, unidade, ROUND(preco_unitario,2) AS custo
+       FROM seinfra_composicoes
+       WHERE codigo LIKE ? OR descricao LIKE ?
+       ORDER BY descricao LIMIT 200`,
+      [keyword, keyword]
+    );
+    for (const r of rows) {
+      r.source = 'SEINFRA';
+      r.custo = r.custo != null ? Number(r.custo) : null;
+      results.push(r);
+    }
+  }
+
+  currentResults = results;
+  renderResults(results);
+  headerInfo.innerHTML = `<strong>${results.length}</strong> resultado(s) para "${escapeHtml(q)}"`;
+}
+
+// ============================================================
+// RENDER RESULTS TABLE
+// ============================================================
+function renderResults(results) {
+  if (!results.length) {
+    mainContent.innerHTML = `<div class="state-msg">
+      <div class="icon">📭</div>
+      <p>Nenhum resultado encontrado</p>
+      <p class="sub">Tente outro termo ou fonte</p>
+    </div>`;
+    return;
+  }
+
+  let html = `<div class="results-card">
+    <div class="results-card-header">
+      <h3>Resultados (${results.length})</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Código</th>
+          <th>Descrição</th>
+          <th>Unid</th>
+          <th>R$ Unit.</th>
+          <th>Fonte</th>
+        </tr></thead>
+        <tbody>`;
+
+  results.forEach((r, idx) => {
+    const custo = r.custo != null ? formatMoney(r.custo) : '—';
+    const badgeClass = r.source === 'SINAPI' ? 'badge-sinapi' : 'badge-seinfra';
+    html += `<tr data-idx="${idx}" class="result-row">
+      <td class="col-codigo">
+        ${escapeHtml(String(r.codigo))}
+        <button class="copy-btn" data-code="${escapeHtml(String(r.codigo))}" title="Copiar código">📋</button>
+      </td>
+      <td class="col-descricao">${escapeHtml(r.descricao || '')}</td>
+      <td class="col-unid">${escapeHtml(r.unidade || '')}</td>
+      <td class="col-custo">${custo}</td>
+      <td class="col-fonte"><span class="badge ${badgeClass}">${escapeHtml(r.source)}</span></td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div></div>
+    <div id="analiticoContainer"></div>`;
+
+  mainContent.innerHTML = html;
+
+  // Click handler on rows
+  mainContent.querySelectorAll('.result-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.copy-btn')) return;
+      const idx = parseInt(row.dataset.idx);
+      const r = currentResults[idx];
+      if (r) openAnalitico(r);
+    });
+  });
+
+  // Copy button handlers
+  mainContent.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const code = btn.dataset.code;
+      try {
+        await navigator.clipboard.writeText(code);
+        const orig = btn.textContent;
+        btn.textContent = '✓';
+        setTimeout(() => { btn.textContent = orig; }, 1200);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.textContent = '✓';
+        setTimeout(() => { btn.textContent = '📋'; }, 1200);
+      }
+    });
+  });
+}
+
+// ============================================================
+// ANALYTICAL BREAKDOWN
+// ============================================================
+function openAnalitico(result) {
+  const source = result.source.toLowerCase();
+  const codigo = result.codigo;
+  const container = $('#analiticoContainer');
+  const compId = `${source}|${codigo}`;
+  activeComposicaoId = compId;
+
+  // Highlight selected row
+  mainContent.querySelectorAll('.result-row').forEach(r => r.classList.remove('selected'));
+  mainContent.querySelectorAll('.result-row').forEach(row => {
+    const idx = parseInt(row.dataset.idx);
+    if (currentResults[idx] && String(currentResults[idx].codigo) === String(codigo) &&
+        currentResults[idx].source.toLowerCase() === source) {
+      row.classList.add('selected');
+    }
+  });
+
+  container.innerHTML = `<div class="analitico-card" style="border-left-color: var(--accent);">
+    <div class="analitico-header">
+      <h3>📊 Analítico <span class="parent-code">${escapeHtml(String(codigo))}</span></h3>
+      <div class="loading-spinner"></div>
+    </div>
+    <div style="padding:16px;text-align:center;color:var(--text-dim);">Carregando composição...</div>
+  </div>`;
+
+  container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  try {
+    let data;
+    if (source === 'sinapi') {
+      data = getAnaliticoSinapi(codigo);
+    } else {
+      data = getAnaliticoSeinfra(codigo);
+    }
+    if (!data || !data.composicao) {
+      throw new Error('Composição não encontrada');
+    }
+    renderAnalitico(container, data, compId);
+  } catch (err) {
+    container.innerHTML = `<div class="error-msg">Erro ao carregar analítico: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function getAnaliticoSinapi(codigo) {
+  const parent = dbQueryOne(
+    `SELECT CAST(codigo AS TEXT) AS codigo, descricao, unidade, ROUND(custo,2) AS custo
+     FROM sinapi_composicoes
+     WHERE codigo = ?`, [Number(codigo)]
+  );
+  if (!parent) return null;
+  parent.custo = parent.custo != null ? Number(parent.custo) : 0;
+
+  const items = dbQuery(
+    `SELECT ci.tipo_item, ci.codigo_item, ci.descricao, ci.unidade, ci.coeficiente, ci.situacao,
+            CASE
+              WHEN ci.tipo_item = 'INSUMO' THEN i.valor
+              WHEN ci.tipo_item = 'COMPOSICAO' THEN sc.custo
+              ELSE NULL
+            END AS preco_unitario
+     FROM sinapi_composicao_itens ci
+     LEFT JOIN sinapi_insumos i ON ci.codigo_item = i.codigo
+     LEFT JOIN sinapi_composicoes sc ON CAST(ci.codigo_item AS INTEGER) = sc.codigo
+     WHERE ci.codigo_composicao = ?
+       AND ci.tipo_item IS NOT NULL AND ci.tipo_item != ''
+     ORDER BY ci.tipo_item, ci.descricao`,
+    [Number(codigo)]
+  );
+
+  let somaItens = 0;
+  const itemsOut = [];
+  for (const it of items) {
+    const coef = it.coeficiente != null ? Number(it.coeficiente) : 0;
+    const pu = it.preco_unitario != null ? Number(it.preco_unitario) : null;
+    const totalItem = pu != null ? Math.round(coef * pu * 100) / 100 : null;
+
+    let tipoLabel = "INSUMO";
+    let tipoIcon = "📦";
+    if (it.tipo_item === "COMPOSICAO") {
+      tipoLabel = "SUB-COMPOSIÇÃO";
+      tipoIcon = "🔧";
+    } else if (it.tipo_item === "MAO_DE_OBRA") {
+      tipoLabel = "MÃO DE OBRA";
+      tipoIcon = "👷";
+    } else if (it.tipo_item === "EQUIPAMENTO") {
+      tipoLabel = "EQUIPAMENTO";
+      tipoIcon = "🛠️";
+    }
+
+    itemsOut.push({
+      tipo: tipoLabel,
+      tipo_icon: tipoIcon,
+      codigo_item: String(it.codigo_item),
+      descricao: it.descricao,
+      unidade: it.unidade,
+      coeficiente: coef,
+      preco_unitario: pu,
+      total: totalItem,
+      sem_preco: pu === null,
+      situacao: it.situacao,
+    });
+
+    if (pu !== null) somaItens += coef * pu;
+  }
+
+  somaItens = Math.round(somaItens * 100) / 100;
+  const custoOficial = Number(parent.custo);
+  const diferenca = Math.round((custoOficial - somaItens) * 100) / 100;
+
+  return {
+    composicao: { ...parent, source: "SINAPI" },
+    itens: itemsOut,
+    totais: {
+      soma_itens: somaItens,
+      total_oficial: custoOficial,
+      diferenca: diferenca,
+    },
+  };
+}
+
+function getAnaliticoSeinfra(codigo) {
+  const parent = dbQueryOne(
+    `SELECT codigo, descricao, unidade, ROUND(preco_unitario,2) AS custo
+     FROM seinfra_composicoes WHERE codigo = ?`, [String(codigo)]
+  );
+  if (!parent) return null;
+  parent.custo = parent.custo != null ? Number(parent.custo) : 0;
+
+  const items = dbQuery(
+    `SELECT codigo_item, descricao_item AS descricao,
+            unidade_item AS unidade, categoria,
+            coeficiente,
+            ROUND(preco_unitario,4) AS preco_unitario,
+            ROUND(total_item,4) AS total_item
+     FROM seinfra_composicao_itens
+     WHERE codigo_composicao = ?
+     ORDER BY categoria, descricao`,
+    [String(codigo)]
+  );
+
+  let somaItens = 0;
+  const itemsOut = [];
+  for (const it of items) {
+    const coef = it.coeficiente != null ? Number(it.coeficiente) : 0;
+    const pu = it.preco_unitario != null ? Number(it.preco_unitario) : null;
+    const totalItem = it.total_item != null ? Number(it.total_item) : null;
+
+    const categoria = it.categoria || "OUTROS";
+    let tipoIcon = "📦";
+    if (categoria.toUpperCase().includes("MAO DE OBRA") || categoria.toUpperCase().includes("MÃO DE OBRA")) {
+      tipoIcon = "👷";
+    } else if (categoria.toUpperCase().includes("EQUIPAMENTO")) {
+      tipoIcon = "🛠️";
+    }
+
+    itemsOut.push({
+      tipo: categoria,
+      tipo_icon: tipoIcon,
+      codigo_item: it.codigo_item,
+      descricao: it.descricao,
+      unidade: it.unidade,
+      coeficiente: coef,
+      preco_unitario: pu,
+      total: totalItem,
+      sem_preco: pu === null,
+      situacao: null,
+    });
+
+    if (pu !== null) somaItens += coef * pu;
+  }
+
+  somaItens = Math.round(somaItens * 100) / 100;
+  const custoOficial = Number(parent.custo);
+  const diferenca = Math.round((custoOficial - somaItens) * 100) / 100;
+
+  return {
+    composicao: { ...parent, source: "SEINFRA" },
+    itens: itemsOut,
+    totais: {
+      soma_itens: somaItens,
+      total_oficial: custoOficial,
+      diferenca: diferenca,
+    },
+  };
+}
+
+function renderAnalitico(container, data, compId) {
+  const comp = data.composicao;
+  const itens = data.itens || [];
+  const totais = data.totais || {};
+
+  let html = `<div class="analitico-card" style="border-left-color: var(--accent);">
+    <div class="analitico-header">
+      <h3>📊 Analítico <span class="parent-code">${escapeHtml(String(comp.codigo))} — ${escapeHtml(comp.descricao || '')}</span></h3>
+      <span style="font-size:13px;color:var(--text-dim);">${escapeHtml(comp.unidade || '')} | <strong style="color:var(--text-bright);">${formatMoney(comp.custo)}</strong></span>
+    </div>
+    <div class="analitico-items">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Tipo</th>
+            <th>Código</th>
+            <th>Descrição</th>
+            <th>Unid</th>
+            <th>Coef</th>
+            <th>R$ Unit.</th>
+            <th>Total</th>
+          </tr></thead>
+          <tbody>`;
+
+  itens.forEach(it => {
+    const pu = it.preco_unitario != null ? formatMoney(it.preco_unitario) : '—';
+    const total = it.total != null ? formatMoney(it.total) : '—';
+    const semPrecoFlag = it.sem_preco ? ' <span class="sem-preco">⚠️ SEM PREÇO</span>' : '';
+
+    html += `<tr>
+      <td>${it.tipo_icon || ''} ${escapeHtml(it.tipo || '')}</td>
+      <td class="col-codigo">${escapeHtml(String(it.codigo_item))}</td>
+      <td>${escapeHtml(it.descricao || '')}${semPrecoFlag}</td>
+      <td>${escapeHtml(it.unidade || '')}</td>
+      <td>${formatCoef(it.coeficiente)}</td>
+      <td>${pu}</td>
+      <td>${total}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div></div>`;
+
+  // Totals bar
+  const diff = totais.diferenca;
+  let diffClass = '';
+  if (diff != null && Math.abs(diff) < 0.02) diffClass = 'good';
+  else if (diff != null && Math.abs(diff) > 1) diffClass = 'warn';
+  if (diff != null && diff < 0) diffClass += ' negative';
+
+  html += `<div class="totais-bar">
+    <div class="total-item">
+      <span class="total-label">Soma dos Itens</span>
+      <span class="total-value">${formatMoney(totais.soma_itens)}</span>
+    </div>
+    <div class="total-item">
+      <span class="total-label">Total Oficial</span>
+      <span class="total-value">${formatMoney(totais.total_oficial)}</span>
+    </div>
+    <div class="total-item">
+      <span class="total-label">Diferença</span>
+      <span class="total-value ${diffClass}">${diff != null ? formatMoney(diff) : '—'}</span>
+    </div>
+  </div>`;
+
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+// ============================================================
+// SINAPI GROUPS TREE
+// ============================================================
+function buildSinapiTree() {
+  if (!DB) return;
+
+  const grupos = dbQuery(
+    `SELECT DISTINCT grupo FROM sinapi_composicoes
+     WHERE grupo IS NOT NULL AND grupo != ''
+     ORDER BY grupo`
+  );
+
+  sinapiTreeRoot.innerHTML = '';
+  grupos.forEach(g => {
+    const grupo = g.grupo;
+    sinapiGroupCache[grupo] = { expanded: false, loaded: false, items: [] };
+
+    const li = document.createElement('li');
+    li.className = 'tree-node';
+    li.dataset.grupo = grupo;
+
+    const row = document.createElement('div');
+    row.className = 'tree-row';
+
+    const toggle = document.createElement('span');
+    toggle.className = 'tree-toggle';
+    toggle.textContent = '▶';
+    row.appendChild(toggle);
+
+    const label = document.createElement('span');
+    label.className = 'tree-label';
+    label.textContent = grupo;
+    row.appendChild(label);
+
+    const count = document.createElement('span');
+    count.className = 'tree-code';
+
+    // Get count for this group
+    const cntRow = dbQueryOne(
+      `SELECT COUNT(*) AS cnt FROM sinapi_composicoes WHERE grupo = ?`,
+      [grupo]
+    );
+    count.textContent = cntRow ? `${cntRow.cnt} itens` : '';
+    row.appendChild(count);
+
+    li.appendChild(row);
+
+    const childrenUl = document.createElement('ul');
+    childrenUl.className = 'tree-children';
+    li.appendChild(childrenUl);
+
+    sinapiTreeRoot.appendChild(li);
+
+    // Click handler
+    row.addEventListener('click', () => toggleSinapiGroup(grupo, li, childrenUl));
+  });
+}
+
+function toggleSinapiGroup(grupo, li, childrenUl) {
+  const state = sinapiGroupCache[grupo];
+  if (!state) return;
+
+  const toggle = li.querySelector('.tree-toggle');
+  const row = li.querySelector('.tree-row');
+
+  if (state.expanded) {
+    state.expanded = false;
+    childrenUl.classList.remove('open');
+    toggle.classList.remove('expanded');
+    row.classList.remove('active');
+    return;
+  }
+
+  state.expanded = true;
+  toggle.classList.add('expanded');
+  row.classList.add('active');
+  childrenUl.classList.add('open');
+
+  if (!state.loaded) {
+    const items = dbQuery(
+      `SELECT CAST(codigo AS TEXT) AS codigo, descricao, unidade, ROUND(custo,2) AS custo
+       FROM sinapi_composicoes
+       WHERE grupo = ?
+       ORDER BY descricao
+       LIMIT 300`,
+      [grupo]
+    );
+
+    childrenUl.innerHTML = '';
+    items.forEach(it => {
+      const subLi = document.createElement('li');
+      subLi.className = 'tree-node';
+
+      const subRow = document.createElement('div');
+      subRow.className = 'tree-row';
+
+      const spacer = document.createElement('span');
+      spacer.className = 'tree-toggle empty';
+      subRow.appendChild(spacer);
+
+      const subLabel = document.createElement('span');
+      subLabel.className = 'tree-label';
+      subLabel.textContent = it.descricao || 'Sem descrição';
+      subRow.appendChild(subLabel);
+
+      const subCode = document.createElement('span');
+      subCode.className = 'tree-code';
+      subCode.textContent = String(it.codigo);
+      subRow.appendChild(subCode);
+
+      subLi.appendChild(subRow);
+      childrenUl.appendChild(subLi);
+
+      subRow.addEventListener('click', () => {
+        searchInput.value = String(it.codigo);
+        sourceToggle.querySelector('[data-source="sinapi"]').click();
+        doSearch();
+      });
+    });
+
+    state.loaded = true;
+  }
+}
+
+// ============================================================
+// SEINFRA HIERARCHY TREE
+// ============================================================
+function buildSeinfraTree() {
+  if (!DB) return;
+
+  const nodes = dbQuery(
+    `SELECT item, codigo, descricao, unidade, ROUND(preco_unitario,2) AS preco_unitario, nivel
+     FROM seinfra_planos_servicos
+     WHERE nivel = 1
+     ORDER BY item`
+  );
+
+  seinfraTreeRoot.innerHTML = '';
+  renderSeinfraNodes(seinfraTreeRoot, nodes, 1, '');
+}
+
+function renderSeinfraNodes(container, nodes, nivel, parentItem) {
+  container.innerHTML = '';
+  nodes.forEach(node => {
+    const key = node.item;
+    seinfraTreeCache[key] = { expanded: false, loaded: false, children: [], node };
+
+    const li = document.createElement('li');
+    li.className = 'tree-node';
+    li.dataset.item = node.item;
+    li.dataset.nivel = nivel;
+    li.dataset.codigo = node.codigo || '';
+
+    const row = document.createElement('div');
+    row.className = 'tree-row';
+
+    const toggle = document.createElement('span');
+    toggle.className = 'tree-toggle';
+    if (nivel < 3) {
+      toggle.textContent = '▶';
+      toggle.title = 'Expandir';
+    } else {
+      toggle.classList.add('empty');
+    }
+    row.appendChild(toggle);
+
+    const label = document.createElement('span');
+    label.className = 'tree-label';
+    label.textContent = node.descricao || node.item;
+    row.appendChild(label);
+
+    const code = document.createElement('span');
+    code.className = 'tree-code';
+    code.textContent = node.codigo || '';
+    row.appendChild(code);
+
+    li.appendChild(row);
+
+    const childrenUl = document.createElement('ul');
+    childrenUl.className = 'tree-children';
+    li.appendChild(childrenUl);
+
+    container.appendChild(li);
+
+    if (nivel < 3) {
+      row.addEventListener('click', () => toggleSeinfraNode(key, li, childrenUl, nivel));
+    } else {
+      row.addEventListener('click', () => {
+        if (node.codigo) {
+          searchInput.value = node.codigo;
+          sourceToggle.querySelector('[data-source="seinfra"]').click();
+          doSearch();
+        }
+      });
+    }
+  });
+}
+
+function toggleSeinfraNode(key, li, childrenUl, nivel) {
+  const state = seinfraTreeCache[key];
+  if (!state) return;
+
+  const toggleEl = li.querySelector('.tree-toggle');
+  const rowEl = li.querySelector('.tree-row');
+
+  if (state.expanded) {
+    state.expanded = false;
+    childrenUl.classList.remove('open');
+    toggleEl.classList.remove('expanded');
+    rowEl.classList.remove('active');
+    return;
+  }
+
+  state.expanded = true;
+  toggleEl.classList.add('expanded');
+  rowEl.classList.add('active');
+  childrenUl.classList.add('open');
+
+  if (!state.loaded) {
+    childrenUl.innerHTML = '<li class="tree-loading">Carregando...</li>';
+
+    const childNivel = nivel + 1;
+    const likePattern = `${key}.%`;
+    const parentDots = key.split('.').length - 1;
+
+    const allRows = dbQuery(
+      `SELECT item, codigo, descricao, unidade, ROUND(preco_unitario,2) AS preco_unitario, nivel
+       FROM seinfra_planos_servicos
+       WHERE nivel = ? AND item LIKE ?
+       ORDER BY item`,
+      [childNivel, likePattern]
+    );
+
+    // Filter to direct children only
+    const children = allRows.filter(r => {
+      return r.item && r.item.split('.').length - 1 === parentDots + 1;
+    });
+
+    state.children = children;
+    state.loaded = true;
+    renderSeinfraNodes(childrenUl, children, childNivel, key);
+
+    // Restore expanded state
+    const t = li.querySelector('.tree-toggle');
+    const r = li.querySelector('.tree-row');
+    if (t) t.classList.add('expanded');
+    if (r) r.classList.add('active');
+    seinfraTreeCache[key].expanded = true;
+    childrenUl.classList.add('open');
+  }
+}
+
+// ============================================================
+// MOBILE SIDEBAR TOGGLE
+// ============================================================
+function openSidebar() {
+  sidebar.classList.add('open');
+  sidebarOverlay.classList.add('show');
+}
+function closeSidebar() {
+  sidebar.classList.remove('open');
+  sidebarOverlay.classList.remove('show');
+}
+mobileMenuBtn.addEventListener('click', openSidebar);
+sidebarOverlay.addEventListener('click', closeSidebar);
+
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 768) closeSidebar();
+});
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function formatMoney(val) {
+  if (val == null || isNaN(val)) return '—';
+  return 'R$ ' + Math.abs(val).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+  });
+}
+
+function formatCoef(val) {
+  if (val == null) return '—';
+  return parseFloat(val.toFixed(7)).toString();
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ============================================================
+// STARTUP
+// ============================================================
+init();
+</script>
+</body>
+</html>

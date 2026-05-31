@@ -1,0 +1,103 @@
+============================================================
+  DASHBOARD DE PREÇOS — SINAPI + SEINFRA-CE (VERSÃO PORTÁTIL)
+============================================================
+
+Funciona SEM instalação em Windows, Linux e Mac.
+
+------------------------------------------------------------
+REQUISITOS
+------------------------------------------------------------
+
+- Navegador moderno (Chrome 80+, Edge 80+, Firefox 78+)
+- Os dois arquivos precisam estar JUNTOS:
+    index.html
+    dados.sqlite
+- Internet APENAS no primeiro acesso (~1 MB para sql.js).
+  Depois funciona offline (cache do navegador).
+
+------------------------------------------------------------
+COMO USAR
+------------------------------------------------------------
+
+WINDOWS:
+    Duplo-clique em iniciar.bat
+
+LINUX / MAC:
+    ./iniciar.sh
+    (se não funcionar: chmod +x iniciar.sh && ./iniciar.sh)
+
+ALTERNATIVA (Firefox):
+    Arraste index.html para o Firefox.
+    O Firefox permite carregar arquivos locais diretamente.
+
+ALTERNATIVA (PowerShell manual):
+    powershell -Command "$s=New-Object Net.HttpListener;$s.Prefixes.Add('http://localhost:8765/');$s.Start();Start-Process 'http://localhost:8765'"
+
+⚠️ NÃO abra no Chrome/Edge/Chromium com duplo-clique no HTML!
+    Esses navegadores bloqueiam arquivos locais. Use o .bat ou .sh.
+
+------------------------------------------------------------
+FUNCIONALIDADES
+------------------------------------------------------------
+
+✔ Busca lexical por palavra-chave (código ou descrição)
+✔ Alternar entre SINAPI, SEINFRA ou AMBOS
+✔ Tabela de resultados com código, descrição, unidade, preço e fonte
+✔ Clique em qualquer resultado para ver a decomposição analítica
+✔ Decomposição com soma dos itens, total oficial e diferença
+✔ Itens sem preço são marcados com ⚠️ SEM PREÇO
+✔ Botão 📋 para copiar código com um clique
+✔ Árvore de grupos SINAPI na barra lateral
+✔ Árvore hierárquica SEINFRA (Plano de Serviços) na barra lateral
+✔ Tema escuro (dark mode)
+✔ Responsivo (funciona em celular e tablet)
+✔ Modo offline após primeiro carregamento
+
+------------------------------------------------------------
+DADOS
+------------------------------------------------------------
+
+SINAPI — CAIXA, Abril 2026 (apenas Ceará, sem desoneração)
+SEINFRA-CE — Versão 028
+
+Arquivo: dados.sqlite (~18 MB)
+Contém: composições, itens, insumos e hierarquia.
+
+------------------------------------------------------------
+ATUALIZAR DADOS
+------------------------------------------------------------
+
+Quando novos dados estiverem disponíveis, execute no Linux:
+
+    python3 export_to_sqlite.py
+
+Isso regenera o arquivo dados.sqlite a partir dos bancos
+MariaDB originais. Depois é só substituir o dados.sqlite.
+
+------------------------------------------------------------
+SOLUÇÃO DE PROBLEMAS
+------------------------------------------------------------
+
+ERRO: "dados.sqlite não encontrado"
+  → Coloque dados.sqlite no mesmo diretório do index.html
+
+ERRO: Tela de carregamento infinita / "file:// bloqueado"
+  → Use iniciar.bat (Windows) ou iniciar.sh (Linux)
+  → Ou abra no Firefox (funciona direto)
+
+ERRO: Busca não retorna resultados
+  → Tente um termo mais genérico (ex: "PISO" em vez de "PISO CERÂMICO")
+  → A busca é lexical (LIKE %termo%), não entende sinônimos
+
+------------------------------------------------------------
+ARQUIVOS
+------------------------------------------------------------
+
+index.html           → Dashboard completo (HTML + CSS + JS)
+dados.sqlite         → Banco de dados portátil
+iniciar.bat          → Launcher Windows (PowerShell)
+iniciar.sh           → Launcher Linux/Mac
+export_to_sqlite.py  → Script para regenerar o SQLite
+LEIAME.txt           → Este arquivo
+
+------------------------------------------------------------
