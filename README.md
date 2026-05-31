@@ -97,6 +97,13 @@ python3 export_to_sqlite.py
 
 Isso lê os bancos MariaDB (`sinapi_2026_04`, `seinfra_ce_028`) e gera um novo `dados.sqlite`.
 
+> ⚠️ **Atenção:** o nome do banco SINAPI muda a cada mês (ex: `sinapi_2026_04` → `sinapi_2026_05`).
+> Antes de executar, edite o arquivo `export_to_sqlite.py` e atualize a variável `DB_SINAPI`:
+> ```python
+> DB_SINAPI = "sinapi_2026_05"  # ← mude aqui
+> ```
+> O mesmo vale para o SEINFRA quando sair uma versão nova (ex: `seinfra_ce_029`).
+
 ---
 
 ## Licença
